@@ -1,0 +1,130 @@
+[
+  {
+    "category": "sanity",
+    "query": "read the contents of a file",
+    "expected_server": "filesystem"
+  },
+  {
+    "category": "sanity",
+    "query": "list what's inside a folder",
+    "expected_server": "filesystem"
+  },
+  {
+    "category": "sanity",
+    "query": "search for files matching a name pattern",
+    "expected_server": "filesystem"
+  },
+  {
+    "category": "sanity",
+    "query": "get metadata or size info about a file",
+    "expected_server": "filesystem"
+  },
+  {
+    "category": "sanity",
+    "query": "show me what changed in this repo",
+    "expected_server": "git"
+  },
+  {
+    "category": "sanity",
+    "query": "commit my staged changes",
+    "expected_server": "git"
+  },
+  {
+    "category": "sanity",
+    "query": "create a new branch",
+    "expected_server": "git"
+  },
+  {
+    "category": "sanity",
+    "query": "show the commit history",
+    "expected_server": "git"
+  },
+  {
+    "category": "sanity",
+    "query": "help me think through this problem step by step",
+    "expected_server": "sequentialthinking"
+  },
+  {
+    "category": "sanity",
+    "query": "break this complex task into smaller reasoning steps",
+    "expected_server": "sequentialthinking"
+  },
+  {
+    "category": "sanity",
+    "query": "remember this fact for later",
+    "expected_server": "memory"
+  },
+  {
+    "category": "sanity",
+    "query": "store a relationship between two entities",
+    "expected_server": "memory"
+  },
+  {
+    "category": "sanity",
+    "query": "search what I've previously stored in memory",
+    "expected_server": "memory"
+  },
+  {
+    "category": "disambiguation",
+    "query": "track changes to this file",
+    "expected_server": "git",
+    "note": "Filesystem also has file-level tools; wording doesn't say 'git'"
+  },
+  {
+    "category": "disambiguation",
+    "query": "save this for later",
+    "expected_server": "memory",
+    "note": "Sounds like it could hit filesystem's write_file"
+  },
+  {
+    "category": "disambiguation",
+    "query": "show me the history",
+    "expected_server": "git",
+    "note": "Memory's read_graph could plausibly compete"
+  },
+  {
+    "category": "disambiguation",
+    "query": "what do you know about this project",
+    "expected_server": "memory",
+    "note": "Filesystem's directory_tree is a false-positive risk"
+  },
+  {
+    "category": "disambiguation",
+    "query": "undo my last change",
+    "expected_server": "git",
+    "note": "No filesystem equivalent exists - checks it doesn't force a bad match"
+  },
+  {
+    "category": "disambiguation",
+    "query": "figure out the best approach before acting",
+    "expected_server": "sequentialthinking",
+    "note": "Should not falsely match git's log/diff tools on 'approach'/'before'"
+  },
+  {
+    "category": "no_match",
+    "query": "send an email to my team",
+    "expected_server": null,
+    "note": "None of the 4 servers can do this - expect low scores, not a confident wrong answer"
+  },
+  {
+    "category": "no_match",
+    "query": "deploy this to production",
+    "expected_server": null
+  },
+  {
+    "category": "no_match",
+    "query": "compile and run the tests",
+    "expected_server": null
+  },
+  {
+    "category": "compound",
+    "query": "look at what changed, decide if it's safe to commit, and remember that decision",
+    "expected_servers": ["git", "sequentialthinking", "memory"],
+    "note": "Checks top_k=5 surfaces a spread across servers, not 5 near-duplicates from one"
+  },
+  {
+    "category": "compound",
+    "query": "read this file, then commit it if it looks good",
+    "expected_servers": ["filesystem", "git"]
+  }
+]
