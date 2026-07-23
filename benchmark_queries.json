@@ -1,7 +1,0 @@
-[
-  {"query": "read the contents of a file", "expected": "filesystem__read_file"},
-  {"query": "list what's in a folder", "expected": "filesystem__list_directory"},
-  {"query": "create a new folder", "expected": "filesystem__create_directory"},
-  {"query": "remember this fact for later", "expected": "memory__create_entities"},
-  {"query": "search my stored memories", "expected": "memory__search_nodes"}
-]
