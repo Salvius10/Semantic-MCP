@@ -6,10 +6,10 @@ servers.
 
 Instead of the client loading every tool from every downstream server on
 every turn, the router exposes just **two tools** — `search_tools` and
-`invoke_tool` — and uses local embeddings to find the right downstream tool
-for a natural-language query on demand. This cuts the token cost of large
-tool catalogs and keeps the client's tool list small no matter how many
-servers you have connected.
+`invoke_tool` — and uses hybrid search (local embeddings + BM25) to find the
+right downstream tool for a natural-language query on demand. This cuts the
+token cost of large tool catalogs and keeps the client's tool list small no
+matter how many servers you have connected.
 
 ## What it does
 
@@ -20,13 +20,18 @@ servers you have connected.
   next time it starts.
 - **Connects to all of them** over stdio and collects their full tool
   catalogs (`catalog.py`).
-- **Embeds every tool's name + description** locally with
-  `sentence-transformers` (`all-MiniLM-L6-v2`) and builds a similarity
-  index (`embeddings.py`) — no external API calls, fully offline after the
-  first model download.
+- **Indexes every tool two ways** (`embeddings.py`): a local embedding
+  similarity index via `sentence-transformers` (`all-MiniLM-L6-v2`) for
+  meaning, and a BM25 lexical index over tool name + description for exact
+  term matches — embeddings alone tend to match the topic of a query
+  ("file") while missing the verb ("read" vs "write"; BM25 catches that).
+  The two rankings are combined with reciprocal rank fusion (`ranking.py`).
+  Fully local, no external API calls, offline after the first model
+  download.
 - **Exposes two tools to the outer client:**
-  - `search_tools(query)` — semantic search over every downstream tool,
-    returns the top matches with their full schemas.
+  - `search_tools(query)` — hybrid search over every downstream tool,
+    capped at 2 results per server so one large server can't crowd out the
+    rest, returns the top matches with their full schemas.
   - `invoke_tool(tool_name, arguments)` — calls the actual downstream tool
     (namespaced as `server__tool`, e.g. `filesystem__read_file`) and
     returns its result.
@@ -36,9 +41,10 @@ servers you have connected.
 | File | Role |
 |---|---|
 | `server.py` | Entry point. The MCP router itself — exposes `search_tools`/`invoke_tool`. |
-| `config.py` | Discovers downstream servers from Claude Desktop / Cursor / Windsurf configs. |
+| `config.py` | Discovers downstream servers from Claude Desktop / Claude Code / Cursor / Windsurf configs. |
 | `catalog.py` | Connects to downstream servers over stdio, namespaces and routes tool calls. |
-| `embeddings.py` | Local embedding index used for semantic tool search. |
+| `embeddings.py` | Hybrid (embedding + BM25) index used for tool search. |
+| `ranking.py` | Reciprocal rank fusion, combines the embedding and BM25 rankings. |
 
 ## Requirements
 
