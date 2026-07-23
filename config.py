@@ -37,10 +37,17 @@ def _read_mcp_servers(path: str | None) -> dict:
 def load_server_config() -> dict:
     """Auto-discover MCP servers from every installed client's config file,
     live, on every call. No manual export/sync step: whatever is currently
-    configured in Claude Desktop, Cursor, or Windsurf is what gets used."""
+    configured in Claude Desktop, Cursor, or Windsurf is what gets used.
+
+    Skips its own entry (matched by the SEMANTIC_MCP_SELF_NAME env var, set
+    on this process by whoever launched it) so the router never tries to
+    spawn itself as a downstream server when it's registered inside one of
+    the same config files it reads from."""
+    self_name = os.environ.get("SEMANTIC_MCP_SELF_NAME")
     merged: dict = {}
     for client_name, path_fn in CANDIDATE_CONFIGS:
         servers = _read_mcp_servers(path_fn())
+        servers.pop(self_name, None)
         new = {name: spec for name, spec in servers.items() if name not in merged}
         if new:
             print(f"  found {len(new)} server(s) in {client_name} config: "
