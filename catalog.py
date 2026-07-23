@@ -25,8 +25,25 @@ class CatalogEntry:
     input_schema: dict
 
     def embed_text(self) -> str:
-        """The text we'll eventually feed to the embedding model (Phase 4)."""
-        return f"{self.name}: {self.description}"
+        """Text fed to the embedding model. Truncated to roughly one
+        sentence: descriptions vary wildly in length across servers (up to
+        65x in practice), and embedding the full text put long, verbose
+        tools on a different similarity scale than terse ones - this keeps
+        every entry comparable."""
+        desc = self.description.strip()
+        cutoff = desc.find(". ")
+        if cutoff != -1 and cutoff < 200:
+            desc = desc[:cutoff + 1]
+        else:
+            desc = desc[:200]
+        return f"{self.name}: {desc}"
+
+    def lexical_text(self) -> str:
+        """Text fed to the BM25 index. Unlike embed_text, kept full length -
+        BM25 already normalizes by document length, and tool-name tokens
+        (read_file vs write_file, git_diff vs git_commit) are exactly the
+        signal embeddings blur together."""
+        return f"{self.name} {self.description}"
 
     def schema_json(self) -> dict:
         return {

@@ -4,6 +4,7 @@
 #     "mcp",
 #     "sentence-transformers",
 #     "numpy",
+#     "rank-bm25",
 # ]
 # ///
 import asyncio
@@ -15,23 +16,26 @@ from mcp.server.fastmcp import FastMCP
 
 from catalog import DownstreamPool
 from config import load_server_config
-from embeddings import VectorIndex
+from embeddings import HybridIndex
 
 TOP_K = 5
+MAX_PER_SERVER = 2  # caps how many hits any single server can contribute
+                     # to a result page, so one large/verbose server can't
+                     # crowd out every other server's tools
 
 pool = DownstreamPool()
-index: VectorIndex | None = None
+index: HybridIndex | None = None
 
 
-def _build_index() -> VectorIndex:
+def _build_index() -> HybridIndex:
     # Runs in a worker thread: importing sentence-transformers/torch and
     # encoding embeddings together take real time (seconds, sometimes tens
     # of seconds on a cold cache). Blocking the lifespan on this would delay
     # the MCP `initialize` response past clients' startup timeouts, so this
     # is kicked off as a background task instead - search_tools waits on it
     # if called before it finishes.
-    idx = VectorIndex()
-    idx.build([e.embed_text() for e in pool.entries])
+    idx = HybridIndex()
+    idx.build(pool.entries)
     return idx
 
 
@@ -73,10 +77,22 @@ async def search_tools(query: str) -> str:
             "status": "indexing",
             "message": "Tool index is still building, try again in a few seconds."
         })
-    hits = index.search(query, top_k=TOP_K)
+    ranked = index.search(query, top_k=None)
+
+    selected = []
+    per_server_count: dict[str, int] = {}
+    for i, score in ranked:
+        server = pool.entries[i].server
+        if per_server_count.get(server, 0) >= MAX_PER_SERVER:
+            continue
+        selected.append((i, score))
+        per_server_count[server] = per_server_count.get(server, 0) + 1
+        if len(selected) >= TOP_K:
+            break
+
     results = [
         {"score": round(score, 3), **pool.entries[i].schema_json()}
-        for i, score in hits
+        for i, score in selected
     ]
     return json.dumps(results, indent=2)
 
