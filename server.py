@@ -41,8 +41,8 @@ async def lifespan(_server):
     print("Discovering downstream servers...", file=sys.stderr)
     servers = load_server_config()
     if not servers:
-        print("  no MCP servers found in Claude Desktop, Cursor, or Windsurf "
-              "configs.", file=sys.stderr)
+        print("  no MCP servers found in Claude Desktop, Claude Code, Cursor, "
+              "or Windsurf configs.", file=sys.stderr)
     await pool.connect_all(servers)
     print(f"Connected: {len(pool.entries)} tools across {len(pool.sessions)} "
           f"servers. Indexing in the background...", file=sys.stderr)

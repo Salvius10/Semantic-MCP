@@ -8,6 +8,7 @@ import sys
 # translation is needed.
 CANDIDATE_CONFIGS = [
     ("Claude Desktop", lambda: _appdata_path("Claude", "claude_desktop_config.json")),
+    ("Claude Code", lambda: _home_path(".claude.json")),
     ("Cursor", lambda: _home_path(".cursor", "mcp.json")),
     ("Windsurf", lambda: _home_path(".codeium", "windsurf", "mcp_config.json")),
 ]
@@ -37,7 +38,8 @@ def _read_mcp_servers(path: str | None) -> dict:
 def load_server_config() -> dict:
     """Auto-discover MCP servers from every installed client's config file,
     live, on every call. No manual export/sync step: whatever is currently
-    configured in Claude Desktop, Cursor, or Windsurf is what gets used.
+    configured in Claude Desktop, Claude Code, Cursor, or Windsurf is what
+    gets used.
 
     Skips its own entry (matched by the SEMANTIC_MCP_SELF_NAME env var, set
     on this process by whoever launched it) so the router never tries to

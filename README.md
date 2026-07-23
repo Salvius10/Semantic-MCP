@@ -14,8 +14,8 @@ servers you have connected.
 ## What it does
 
 - **Discovers your MCP servers automatically.** On startup it reads the
-  `mcpServers` config from Claude Desktop, Cursor, and Windsurf (whichever
-  are installed) and merges them — no manual list to maintain. Add or
+  `mcpServers` config from Claude Desktop, Claude Code, Cursor, and Windsurf
+  (whichever are installed) and merges them — no manual list to maintain. Add or
   remove a server in any of those clients and the router picks it up the
   next time it starts.
 - **Connects to all of them** over stdio and collects their full tool
@@ -46,8 +46,8 @@ servers you have connected.
   own dependencies inline, so `uv run` creates an isolated environment and
   installs everything automatically the first time you run it.
 - At least one MCP client installed with servers configured (Claude
-  Desktop, Cursor, or Windsurf) — this is where the router discovers
-  downstream servers from.
+  Desktop, Claude Code, Cursor, or Windsurf) — this is where the router
+  discovers downstream servers from.
 
 ## Install & run — one command
 
@@ -71,8 +71,15 @@ Discovering downstream servers...
   found 2 server(s) in Claude Desktop config: filesystem, memory
   connected to 'filesystem': 12 tools
   connected to 'memory': 9 tools
-Ready: 21 tools across 2 servers.
+Connected: 21 tools across 2 servers. Indexing in the background...
+Ready: 21 tools indexed.
 ```
+
+The `initialize` handshake completes as soon as downstream servers are
+connected — embedding the tool catalog happens in a background thread so
+it never blocks (and can't trip) an MCP client's startup timeout.
+`search_tools` returns an `"indexing"` status if called in that brief
+window before it's done.
 
 ## Connect it to a client
 
@@ -112,8 +119,11 @@ Restart the client after editing its config so it picks up the new server.
 finds (first match wins on a name conflict):
 
 1. Claude Desktop — `%APPDATA%\Claude\claude_desktop_config.json`
-2. Cursor — `~/.cursor/mcp.json`
-3. Windsurf — `~/.codeium/windsurf/mcp_config.json`
+2. Claude Code — `~/.claude.json` (top-level `mcpServers` key; servers
+   registered with `claude mcp add` at project/local scope aren't covered
+   yet, only user/top-level entries)
+3. Cursor — `~/.cursor/mcp.json`
+4. Windsurf — `~/.codeium/windsurf/mcp_config.json`
 
 No config file of its own, no manual sync step — whatever is currently
 configured in any of those clients is what gets used, every time the
