@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "mcp",
+#     "sentence-transformers",
+#     "numpy",
+# ]
+# ///
 import json
 import sys
 from contextlib import asynccontextmanager
