@@ -1,10 +1,11 @@
-# Semantic MCP
+# Semantic MCP Router
 
-A semantic router that sits between an MCP client (Claude Desktop, Claude
-Code, Cursor, Windsurf, ...) and any number of downstream MCP servers.
+A semantic-search router that sits between an MCP client (Claude Desktop,
+Claude Code, Cursor, Windsurf, ...) and any number of downstream MCP
+servers.
 
 Instead of the client loading every tool from every downstream server on
-every turn, Semantic MCP exposes just **two tools** — `search_tools` and
+every turn, the router exposes just **two tools** — `search_tools` and
 `invoke_tool` — and uses local embeddings to find the right downstream tool
 for a natural-language query on demand. This cuts the token cost of large
 tool catalogs and keeps the client's tool list small no matter how many
@@ -15,7 +16,7 @@ servers you have connected.
 - **Discovers your MCP servers automatically.** On startup it reads the
   `mcpServers` config from Claude Desktop, Cursor, and Windsurf (whichever
   are installed) and merges them — no manual list to maintain. Add or
-  remove a server in any of those clients and Semantic MCP picks it up the
+  remove a server in any of those clients and the router picks it up the
   next time it starts.
 - **Connects to all of them** over stdio and collects their full tool
   catalogs (`catalog.py`).
@@ -45,7 +46,7 @@ servers you have connected.
   own dependencies inline, so `uv run` creates an isolated environment and
   installs everything automatically the first time you run it.
 - At least one MCP client installed with servers configured (Claude
-  Desktop, Cursor, or Windsurf) — this is where Semantic MCP discovers
+  Desktop, Cursor, or Windsurf) — this is where the router discovers
   downstream servers from.
 
 ## Install & run — one command
@@ -98,7 +99,7 @@ Add an entry to that client's own MCP config file (e.g. Claude Desktop's
 }
 ```
 
-> **Note:** if you register Semantic MCP inside the *same* config file it
+> **Note:** if you register the router inside the *same* config file it
 > reads for discovery, always set `SEMANTIC_MCP_SELF_NAME` to match the
 > entry's own key. Without it, the router would see its own entry and try
 > to spawn itself as a downstream server.
