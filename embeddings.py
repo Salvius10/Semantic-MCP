@@ -53,6 +53,10 @@ class HybridIndex:
     scores sidesteps the fact that cosine similarity and BM25 scores live
     on completely different, incomparable scales."""
 
+    FUSION_DEPTH = 15  # only the top N from each ranker feeds RRF; a tool
+                       # ranked 30th by both methods contributes nothing
+                       # but noise to the fused sum
+
     def __init__(self, model: str = "all-MiniLM-L6-v2"):
         self.vector = VectorIndex(model)
         self.bm25: BM25Okapi | None = None
@@ -64,11 +68,24 @@ class HybridIndex:
         self.bm25 = BM25Okapi([_tokenize(e.lexical_text()) for e in entries])
 
     def search(self, query: str, top_k: int | None = None) -> list[tuple[int, float]]:
-        """Returns the fused ranking, best first. top_k=None returns every
-        entry ranked (used by search_tools so it can apply a per-server cap
-        over the full ranking rather than a pre-truncated top-K)."""
-        vector_ranking = [i for i, _ in self.vector.search(query, top_k=self.n)]
+        """Returns the fused ranking, best first. top_k=None returns the
+        full fused candidate set (up to FUSION_DEPTH per ranker) instead of
+        a pre-truncated top-K, so search_tools can apply a per-server cap
+        with room to backfill from the next-best candidate."""
+        dense = self.vector.matrix @ self.vector.model.encode([query], normalize_embeddings=True)[0]
+        vector_ranking = [int(i) for i in np.argsort(-dense)]
+
+        # Rank by BM25 score, breaking ties with the dense (vector) score
+        # instead of falling back to catalog/index order, and drop entries
+        # with zero lexical overlap entirely - a stable sort would still
+        # assign them a rank position purely by array index, which fed
+        # index-order noise into the fusion sum for every non-match.
         bm25_scores = self.bm25.get_scores(_tokenize(query))
-        bm25_ranking = [int(i) for i in np.argsort(-bm25_scores, kind="stable")]
-        fused = reciprocal_rank_fusion([vector_ranking, bm25_ranking])
+        order = np.lexsort((-dense, -bm25_scores))
+        bm25_ranking = [int(i) for i in order if bm25_scores[i] > 0]
+
+        fused = reciprocal_rank_fusion([
+            vector_ranking[:self.FUSION_DEPTH],
+            bm25_ranking[:self.FUSION_DEPTH],
+        ])
         return fused[:top_k] if top_k is not None else fused
